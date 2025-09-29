@@ -1,0 +1,5 @@
+{
+  "name": "AI-Powered CI/CD Pipeline",
+  "description": "A simulation of a modern, fully-automated CI/CD pipeline. This interactive tool demonstrates how generative AI can auto-configure a pipeline based on project type, perform code analysis and security scans, diagnose build failures, recommend deployment strategies, and even automate rollbacks after a failed deployment. It showcases a smart, end-to-end software development lifecycle.",
+  "requestFramePermissions": []
+}
