@@ -54,58 +54,54 @@ const CommitInput: React.FC<CommitInputProps> = ({ onRunPipeline, isLoading }) =
   return (
     <div className="bg-midnight-900/50 backdrop-blur-sm rounded-xl border border-midnight-700 p-6 mb-8 shadow-2xl shadow-midnight-950/50">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-1">
-                <label htmlFor="project-type" className="block text-sm font-medium text-gray-400 mb-2">
-                    Project Type
-                </label>
-                <select
-                    id="project-type"
-                    value={projectType}
-                    onChange={(e) => setProjectType(e.target.value)}
-                    disabled={isLoading}
-                    className="w-full bg-midnight-800 border border-midnight-700 rounded-md py-2 px-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 transition duration-200"
-                >
-                    {projectTypes.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                    ))}
-                </select>
-            </div>
-            <div className="md:col-span-2">
-                <label htmlFor="sample-commits" className="block text-sm font-medium text-gray-400 mb-2">
-                    Or Select a Sample Commit
-                </label>
-                <select
-                    id="sample-commits"
-                    onChange={(e) => {
-                        if (e.target.value) setCommitMessage(e.target.value);
-                    }}
-                    value=""
-                    disabled={isLoading}
-                    className="w-full bg-midnight-800 border border-midnight-700 rounded-md py-2 px-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 transition duration-200"
-                >
-                    <option value="" disabled>Choose a sample commit...</option>
-                    {sampleCommitMessages.map((msg) => (
-                        <option key={msg} value={msg}>{msg}</option>
-                    ))}
-                </select>
-            </div>
+        <div>
+            <label htmlFor="project-type" className="block text-sm font-medium text-gray-400 mb-2">
+                Project Type
+            </label>
+            <select
+                id="project-type"
+                value={projectType}
+                onChange={(e) => setProjectType(e.target.value)}
+                disabled={isLoading}
+                className="w-full bg-midnight-800 border border-midnight-700 rounded-md py-2 px-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 transition duration-200"
+            >
+                {projectTypes.map((type) => (
+                <option key={type} value={type}>{type}</option>
+                ))}
+            </select>
         </div>
         
         <div>
             <label htmlFor="commit-message" className="block text-sm font-medium text-gray-400 mb-2">
                 Commit Message
             </label>
-            <input
-                id="commit-message"
-                type="text"
-                value={commitMessage}
-                onChange={(e) => setCommitMessage(e.target.value)}
-                className="w-full bg-midnight-800 border border-midnight-700 rounded-md py-2 px-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 transition duration-200"
-                placeholder="e.g., feat: Add 2FA authentication"
-                disabled={isLoading}
-                required
-            />
+            <div className="flex flex-col sm:flex-row gap-2">
+                 <input
+                    id="commit-message"
+                    type="text"
+                    value={commitMessage}
+                    onChange={(e) => setCommitMessage(e.target.value)}
+                    className="w-full flex-grow bg-midnight-800 border border-midnight-700 rounded-md py-2 px-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 transition duration-200"
+                    placeholder="e.g., feat: Add 2FA authentication"
+                    disabled={isLoading}
+                    required
+                />
+                <select
+                    id="sample-commits"
+                    aria-label="Select a sample commit message"
+                    onChange={(e) => {
+                        if (e.target.value) setCommitMessage(e.target.value);
+                    }}
+                    value=""
+                    disabled={isLoading}
+                    className="w-full sm:w-auto bg-midnight-800 border border-midnight-700 rounded-md py-2 px-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 transition duration-200"
+                >
+                    <option value="" disabled>Or use a sample...</option>
+                    {sampleCommitMessages.map((msg) => (
+                        <option key={msg} value={msg}>{msg}</option>
+                    ))}
+                </select>
+            </div>
         </div>
 
         <button
