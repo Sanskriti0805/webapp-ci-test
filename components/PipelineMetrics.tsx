@@ -59,16 +59,16 @@ const PipelineMetrics: React.FC<PipelineMetricsProps> = ({ history }) => {
       <h2 className="text-xl font-bold text-gray-200 mb-6 flex items-center gap-2">
         <span>Pipeline Performance Metrics</span>
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-midnight-950/50 border border-white/5 p-4 rounded-xl text-center hover:border-violet-500/30 transition-colors">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 items-stretch">
+        <div className="bg-midnight-950/50 border border-white/5 p-4 rounded-xl text-center hover:border-violet-500/30 transition-colors flex flex-col justify-center h-full">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Last Run Duration</p>
           <p className="text-3xl font-bold text-violet-400">{lastRunDuration.toFixed(2)}s</p>
         </div>
-        <div className="bg-midnight-950/50 border border-white/5 p-4 rounded-xl text-center hover:border-green-500/30 transition-colors">
+        <div className="bg-midnight-950/50 border border-white/5 p-4 rounded-xl text-center hover:border-green-500/30 transition-colors flex flex-col justify-center h-full">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Success Rate</p>
           <p className="text-3xl font-bold text-green-400">{successRate.toFixed(1)}%</p>
         </div>
-        <div className="bg-midnight-950/50 border border-white/5 p-4 rounded-xl text-center hover:border-blue-500/30 transition-colors">
+        <div className="bg-midnight-950/50 border border-white/5 p-4 rounded-xl text-center hover:border-blue-500/30 transition-colors flex flex-col justify-center h-full">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Runs</p>
           <p className="text-3xl font-bold text-gray-200">{totalRuns}</p>
         </div>

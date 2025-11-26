@@ -12,7 +12,9 @@
     "marked": "^16.3.0",
     "react-dom": "^19.1.1",
     "@google/genai": "^1.21.0",
-    "react": "^19.1.1"
+    "react": "^19.1.1",
+    "react-markdown": "9.0.1",
+    "remark-gfm": "4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

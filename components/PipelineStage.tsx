@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { PipelineStage, StageStatus } from '../types';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import XCircleIcon from './icons/XCircleIcon';
@@ -42,29 +44,7 @@ const formatDuration = (start: number | null, end: number | null): string => {
   return `${duration.toFixed(2)}s`;
 };
 
-const formatTimestamp = (timestamp: number | null): string => {
-  if (timestamp === null) return 'N/A';
-  return new Date(timestamp).toLocaleString();
-};
-
 const PipelineStageComponent: React.FC<PipelineStageProps> = ({ stage, isLast, onClick }) => {
-  const getTooltipText = () => {
-    if (stage.status === StageStatus.Pending) {
-      return 'Click to view details.';
-    }
-
-    const start = `Start Time: ${formatTimestamp(stage.startTime)}`;
-    const end = `End Time: ${formatTimestamp(stage.endTime)}`;
-    
-    let duration = 'Duration: In progress...';
-    if (stage.startTime && stage.endTime) {
-      const durationSeconds = ((stage.endTime - stage.startTime) / 1000).toFixed(2);
-      duration = `Duration: ${durationSeconds}s`;
-    }
-
-    return `${start}\n${end}\n${duration}\n\nClick to view full log.`;
-  };
-
   const hasContent = !!stage.content && stage.content.length > 0;
 
   return (
@@ -78,7 +58,6 @@ const PipelineStageComponent: React.FC<PipelineStageProps> = ({ stage, isLast, o
 
       <div 
         className={`w-full bg-midnight-900/40 backdrop-blur-sm rounded-xl border ${getStatusColor(stage.status)} transition-all duration-300 hover:border-violet-500/50 hover:bg-midnight-900/60 hover:shadow-lg hover:shadow-violet-500/5 cursor-pointer mb-6 overflow-hidden`}
-        title={getTooltipText()}
         onClick={() => onClick(stage)}
       >
         <div className="p-4 flex justify-between items-center border-b border-white/5">
@@ -97,10 +76,19 @@ const PipelineStageComponent: React.FC<PipelineStageProps> = ({ stage, isLast, o
             <div className="p-4 relative">
                 {hasContent && (
                     <div className="relative max-h-48 overflow-hidden [mask-image:linear-gradient(to_bottom,black_70%,transparent_100%)]">
-                        <div 
-                        className="prose prose-invert prose-sm max-w-none prose-p:text-gray-400 prose-li:text-gray-400 prose-headings:text-gray-300 prose-code:text-violet-300 prose-pre:bg-midnight-950/50 prose-pre:border prose-pre:border-white/5"
-                        dangerouslySetInnerHTML={{ __html: stage.content }}
-                        />
+                        <div className="prose prose-invert prose-sm max-w-none 
+                            prose-headings:text-gray-300 prose-headings:font-bold prose-headings:mb-2 prose-headings:mt-4
+                            prose-p:text-gray-400 prose-p:my-2
+                            prose-li:text-gray-400 prose-ul:my-2 prose-ul:pl-4
+                            prose-pre:bg-midnight-950/50 prose-pre:border prose-pre:border-white/5 prose-pre:p-3 prose-pre:rounded-lg
+                            prose-code:text-violet-300 prose-code:bg-midnight-950/30 prose-code:px-1 prose-code:rounded prose-code:before:content-[''] prose-code:after:content-['']
+                            prose-table:border-collapse prose-table:border prose-table:border-midnight-700 prose-table:w-full prose-table:my-4
+                            prose-th:bg-midnight-800 prose-th:p-2 prose-th:text-left prose-th:text-gray-200 prose-th:border prose-th:border-midnight-700
+                            prose-td:border prose-td:border-midnight-700 prose-td:p-2 prose-td:text-gray-400">
+                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {stage.content}
+                             </ReactMarkdown>
+                        </div>
                     </div>
                 )}
             </div>

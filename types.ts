@@ -7,6 +7,7 @@ export enum StageStatus {
 
 export enum StageName {
   ProjectSetup = 'AI Project Setup',
+  MergeCheck = 'AI Merge Conflict Check',
   SecurityScan = 'AI Security Scan',
   CodeAnalysis = 'AI Code Analysis',
   TestGeneration = 'AI Test Generation',

@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { marked } from 'marked';
+import React, { useState, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { PipelineStage, StageStatus, StageName, PipelineRun } from './types';
 import * as geminiService from './services/geminiService';
 import PipelineStageComponent from './components/PipelineStage';
@@ -15,14 +16,15 @@ import ClockIcon from './components/icons/ClockIcon';
 
 const initialStages: PipelineStage[] = [
   { id: 1, name: StageName.ProjectSetup, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
-  { id: 2, name: StageName.SecurityScan, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
-  { id: 3, name: StageName.CodeAnalysis, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
-  { id: 4, name: StageName.TestGeneration, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
-  { id: 5, name: StageName.BuildAndTest, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
-  { id: 6, name: StageName.DeploymentStrategy, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
-  { id: 7, name: StageName.DeployToStaging, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
-  { id: 8, name: StageName.ReleaseNotes, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
-  { id: 9, name: StageName.DeployToProduction, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 2, name: StageName.MergeCheck, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 3, name: StageName.SecurityScan, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 4, name: StageName.CodeAnalysis, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 5, name: StageName.TestGeneration, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 6, name: StageName.BuildAndTest, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 7, name: StageName.DeploymentStrategy, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 8, name: StageName.DeployToStaging, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 9, name: StageName.ReleaseNotes, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
+  { id: 10, name: StageName.DeployToProduction, status: StageStatus.Pending, content: '', startTime: null, endTime: null },
 ];
 
 const possibleBuildErrors = [
@@ -65,12 +67,6 @@ const App: React.FC = () => {
   const [pipelineHistory, setPipelineHistory] = useState<PipelineRun[]>([]);
   const [selectedStage, setSelectedStage] = useState<PipelineStage | null>(null);
 
-  const updateStage = (id: number, updates: Partial<PipelineStage>) => {
-    setStages(prev =>
-      prev.map(stage => (stage.id === id ? { ...stage, ...updates } : stage))
-    );
-  };
-  
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const runPipeline = useCallback(async (commitMessage: string, projectType: string) => {
@@ -90,101 +86,107 @@ const App: React.FC = () => {
       setStages([...currentStages]);
     };
 
-    let stageIdCounter = 10;
+    let stageIdCounter = 20;
     let finalStatus: PipelineRun['status'] = StageStatus.Success;
 
     try {
         // --- 1. AI Project Setup ---
         updateCurrentStage(1, { status: StageStatus.Running, startTime: Date.now() });
         const setup = await geminiService.getProjectSetup(projectType, commitMessage);
-        updateCurrentStage(1, { status: StageStatus.Success, content: marked.parse(setup) as string, endTime: Date.now() });
+        updateCurrentStage(1, { status: StageStatus.Success, content: setup, endTime: Date.now() });
         await sleep(500);
 
-        // --- 2. AI Security Scan ---
+        // --- 2. AI Merge Conflict Check (New) ---
         updateCurrentStage(2, { status: StageStatus.Running, startTime: Date.now() });
+        const mergeCheck = await geminiService.getMergeConflictAnalysis(commitMessage);
+        updateCurrentStage(2, { status: StageStatus.Success, content: mergeCheck, endTime: Date.now() });
+        await sleep(500);
+
+        // --- 3. AI Security Scan ---
+        updateCurrentStage(3, { status: StageStatus.Running, startTime: Date.now() });
         const security = await geminiService.getSecurityScan(commitMessage);
-        updateCurrentStage(2, { status: StageStatus.Success, content: marked.parse(security) as string, endTime: Date.now() });
+        updateCurrentStage(3, { status: StageStatus.Success, content: security, endTime: Date.now() });
         await sleep(500);
         
-        // --- 3. AI Code Analysis ---
-        updateCurrentStage(3, { status: StageStatus.Running, startTime: Date.now() });
-        const analysis = await geminiService.getCodeAnalysis(commitMessage);
-        updateCurrentStage(3, { status: StageStatus.Success, content: marked.parse(analysis) as string, endTime: Date.now() });
-        await sleep(500);
-
-        // --- 4. AI Test Generation ---
+        // --- 4. AI Code Analysis (CodeRabbit style) ---
         updateCurrentStage(4, { status: StageStatus.Running, startTime: Date.now() });
-        const tests = await geminiService.getTestCases(commitMessage);
-        updateCurrentStage(4, { status: StageStatus.Success, content: marked.parse(tests) as string, endTime: Date.now() });
+        const analysis = await geminiService.getCodeAnalysis(commitMessage);
+        updateCurrentStage(4, { status: StageStatus.Success, content: analysis, endTime: Date.now() });
         await sleep(500);
 
-        // --- 5. Build & Test ---
-        updateCurrentStage(5, { status: StageStatus.Running, content: marked.parse('```\n> Building application...\n> Running generated tests...\n```') as string, startTime: Date.now() });
+        // --- 5. AI Test Generation ---
+        updateCurrentStage(5, { status: StageStatus.Running, startTime: Date.now() });
+        const tests = await geminiService.getTestCases(commitMessage);
+        updateCurrentStage(5, { status: StageStatus.Success, content: tests, endTime: Date.now() });
+        await sleep(500);
+
+        // --- 6. Build & Test ---
+        updateCurrentStage(6, { status: StageStatus.Running, content: '```bash\n> Building application...\n> Running generated tests...\n```', startTime: Date.now() });
         await sleep(2000); 
 
-        const shouldBuildFail = Math.random() > 0.7; 
+        const shouldBuildFail = Math.random() > 0.75; 
         if (shouldBuildFail) {
           const errorLog = possibleBuildErrors[Math.floor(Math.random() * possibleBuildErrors.length)];
-          const failureContent = marked.parse(`\`\`\`\n> Build failed!\n\n${errorLog}\n\`\`\``) as string;
-          updateCurrentStage(5, { status: StageStatus.Failed, content: failureContent, endTime: Date.now() });
+          const failureContent = `\`\`\`bash\n> Build failed!\n\n${errorLog}\n\`\`\``;
+          updateCurrentStage(6, { status: StageStatus.Failed, content: failureContent, endTime: Date.now() });
           
           const failureAnalysisStage: PipelineStage = { id: stageIdCounter++, name: StageName.FailureAnalysis, status: StageStatus.Pending, content: '', startTime: null, endTime: null};
-          addDynamicStage(failureAnalysisStage, 5);
+          addDynamicStage(failureAnalysisStage, 6);
           await sleep(100);
 
           const userContext = window.prompt("The build failed. Provide additional context for the AI to analyze (optional):");
 
           updateCurrentStage(failureAnalysisStage.id, { status: StageStatus.Running, startTime: Date.now() });
           const failureAnalysis = await geminiService.getFailureAnalysis(commitMessage, errorLog, userContext || '');
-          updateCurrentStage(failureAnalysisStage.id, { status: StageStatus.Success, content: marked.parse(failureAnalysis) as string, endTime: Date.now() });
+          updateCurrentStage(failureAnalysisStage.id, { status: StageStatus.Success, content: failureAnalysis, endTime: Date.now() });
           
           finalStatus = StageStatus.Failed;
           throw new Error("Build failed");
         } 
         
-        const successContent = marked.parse('```\n> Build successful.\n> All tests passed.\n```') as string;
-        updateCurrentStage(5, { status: StageStatus.Success, content: successContent, endTime: Date.now() });
+        const successContent = '```bash\n> Build successful.\n> All tests passed.\n```';
+        updateCurrentStage(6, { status: StageStatus.Success, content: successContent, endTime: Date.now() });
         await sleep(500);
 
-        // --- 6. AI Deployment Strategy ---
-        updateCurrentStage(6, { status: StageStatus.Running, startTime: Date.now() });
+        // --- 7. AI Deployment Strategy ---
+        updateCurrentStage(7, { status: StageStatus.Running, startTime: Date.now() });
         const strategy = await geminiService.getDeploymentStrategy(commitMessage);
-        updateCurrentStage(6, { status: StageStatus.Success, content: marked.parse(strategy) as string, endTime: Date.now() });
+        updateCurrentStage(7, { status: StageStatus.Success, content: strategy, endTime: Date.now() });
         await sleep(500);
 
-        // --- 7. Deploy to Staging ---
-        updateCurrentStage(7, { status: StageStatus.Running, content: marked.parse('```\n> Deploying to staging environment...\n```') as string, startTime: Date.now() });
+        // --- 8. Deploy to Staging ---
+        updateCurrentStage(8, { status: StageStatus.Running, content: '```bash\n> Deploying to staging environment...\n```', startTime: Date.now() });
         await sleep(1500);
-        updateCurrentStage(7, { status: StageStatus.Success, content: marked.parse('```\n> Deployed to staging successfully.\n> Running smoke tests...\n> Smoke tests passed.\n```') as string, endTime: Date.now() });
+        updateCurrentStage(8, { status: StageStatus.Success, content: '```bash\n> Deployed to staging successfully.\n> Running smoke tests...\n> Smoke tests passed.\n```', endTime: Date.now() });
         await sleep(500);
 
-        // --- 8. AI Release Notes ---
-        updateCurrentStage(8, { status: StageStatus.Running, startTime: Date.now() });
+        // --- 9. AI Release Notes ---
+        updateCurrentStage(9, { status: StageStatus.Running, startTime: Date.now() });
         const notes = await geminiService.getReleaseNotes(commitMessage);
-        updateCurrentStage(8, { status: StageStatus.Success, content: marked.parse(notes) as string, endTime: Date.now() });
+        updateCurrentStage(9, { status: StageStatus.Success, content: notes, endTime: Date.now() });
         await sleep(500);
         
-        // --- 9. Deploy to Production ---
-        updateCurrentStage(9, { status: StageStatus.Running, content: marked.parse('```\n> Starting production deployment...\n```') as string, startTime: Date.now() });
+        // --- 10. Deploy to Production ---
+        updateCurrentStage(10, { status: StageStatus.Running, content: '```bash\n> Starting production deployment...\n```', startTime: Date.now() });
         await sleep(2000);
 
         const shouldDeployFail = Math.random() > 0.8;
         if (shouldDeployFail) {
             const errorLog = possibleDeploymentErrors[Math.floor(Math.random() * possibleDeploymentErrors.length)];
-            const failureContent = marked.parse(`\`\`\`\n> Production deployment failed!\n\n${errorLog}\n\`\`\``) as string;
-            updateCurrentStage(9, { status: StageStatus.Failed, content: failureContent, endTime: Date.now() });
+            const failureContent = `\`\`\`bash\n> Production deployment failed!\n\n${errorLog}\n\`\`\``;
+            updateCurrentStage(10, { status: StageStatus.Failed, content: failureContent, endTime: Date.now() });
 
             const rollbackStage: PipelineStage = { id: stageIdCounter++, name: StageName.AutomatedRollback, status: StageStatus.Pending, content: '', startTime: null, endTime: null };
-            addDynamicStage(rollbackStage, 9);
+            addDynamicStage(rollbackStage, 10);
             await sleep(100);
 
             updateCurrentStage(rollbackStage.id, { status: StageStatus.Running, startTime: Date.now() });
             const rollbackAnalysis = await geminiService.getRollbackAnalysis(commitMessage, errorLog);
-            updateCurrentStage(rollbackStage.id, { status: StageStatus.Success, content: marked.parse(rollbackAnalysis) as string, endTime: Date.now() });
+            updateCurrentStage(rollbackStage.id, { status: StageStatus.Success, content: rollbackAnalysis, endTime: Date.now() });
             finalStatus = StageStatus.Failed;
             throw new Error("Deployment failed");
         } else {
-            updateCurrentStage(9, { status: StageStatus.Success, content: marked.parse('```\n> Production deployment successful!\n```') as string, endTime: Date.now() });
+            updateCurrentStage(10, { status: StageStatus.Success, content: '```bash\n> Production deployment successful!\n```', endTime: Date.now() });
         }
     } catch (e) {
       // Errors are handled, pipeline ends gracefully
@@ -272,12 +274,21 @@ const App: React.FC = () => {
             </div>
 
             <h3 className="text-lg font-semibold text-gray-300 mb-2">Stage Output</h3>
-            <div className="bg-midnight-900 p-4 rounded-lg max-h-[50vh] overflow-y-auto border border-midnight-700">
+            <div className="bg-midnight-900 p-6 rounded-lg border border-midnight-700">
                 {selectedStage.content ? (
-                    <div
-                        className="prose prose-invert prose-sm max-w-none prose-p:text-gray-300 prose-li:text-gray-300 prose-headings:text-violet-400"
-                        dangerouslySetInnerHTML={{ __html: selectedStage.content }}
-                    />
+                    <div className="prose prose-invert prose-sm max-w-none 
+                        prose-headings:text-violet-400 prose-headings:font-bold prose-headings:mt-6 prose-headings:mb-3
+                        prose-p:text-gray-300 prose-p:my-2
+                        prose-li:text-gray-300 prose-ul:my-2 prose-ul:pl-4
+                        prose-pre:bg-midnight-950/50 prose-pre:border prose-pre:border-white/5 prose-pre:p-4 prose-pre:rounded-lg
+                        prose-code:text-violet-300 prose-code:bg-midnight-950/30 prose-code:px-1 prose-code:rounded
+                        prose-table:border-collapse prose-table:border prose-table:border-midnight-700 prose-table:w-full prose-table:my-4
+                        prose-th:bg-midnight-800 prose-th:p-3 prose-th:text-left prose-th:text-gray-200 prose-th:border prose-th:border-midnight-700
+                        prose-td:border prose-td:border-midnight-700 prose-td:p-3 prose-td:text-gray-300">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedStage.content}
+                        </ReactMarkdown>
+                    </div>
                 ) : (
                     <p className="text-gray-400 italic">This stage has not produced any output yet.</p>
                 )}
